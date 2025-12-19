@@ -1,29 +1,65 @@
-import { useRef, useLayoutEffect } from 'react';
-import { useThree } from '@react-three/fiber';
-import { Box, Cylinder, Sparkles } from '@react-three/drei';
+import { useRef, useLayoutEffect, useMemo } from 'react';
+import { useThree, useFrame } from '@react-three/fiber';
+import { Float, PerspectiveCamera, Environment, ContactShadows, MeshDistortMaterial, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+/**
+ * Custom hook to generate the Sail shape (Extruded Geometry)
+ */
+const SailGeometry = () => {
+    return useMemo(() => {
+        const shape = new THREE.Shape();
+        const width = 18;
+        const height = 45;
+
+        // Starting at bottom-left (center of curve)
+        shape.moveTo(0, 0);
+        // Straight line up the "mast" side
+        shape.lineTo(0, height);
+        // Top point
+        shape.lineTo(1, height);
+
+        // The Big Curve (The Sail)
+        // Control point moves out to create the belly of the sail
+        shape.quadraticCurveTo(width + 5, height / 2, width, 0);
+
+        shape.lineTo(0, 0);
+
+        const settings = {
+            steps: 4,
+            depth: 8, // Thickness of the building
+            bevelEnabled: true,
+            bevelThickness: 0.5,
+            bevelSize: 0.5,
+            bevelSegments: 4
+        };
+        return new THREE.ExtrudeGeometry(shape, settings);
+    }, []);
+};
+
 export default function MasterModel() {
     const { camera, scene } = useThree();
     const group = useRef<THREE.Group>(null);
 
-    // References for animation
-    const cityRef = useRef<THREE.Group>(null);
-    const siteRef = useRef<THREE.Group>(null);
-    const buildingRef = useRef<THREE.Group>(null);
-    const structureRef = useRef<THREE.Group>(null);
-    const mepRef = useRef<THREE.Group>(null);
+    // Animation Refs
+    const sailRef = useRef<THREE.Mesh>(null);
+    const exoskeletonRef = useRef<THREE.Group>(null);
+    const helipadRef = useRef<THREE.Group>(null);
+    const islandRef = useRef<THREE.Mesh>(null);
+
+    // Create the geometry once
+    const sailGeo = SailGeometry();
+
+    // Force camera to look at building center (height ~25)
+    useFrame((state) => {
+        state.camera.lookAt(0, 25, 0);
+    });
 
     useLayoutEffect(() => {
-        // Initial State
-        if (structureRef.current) structureRef.current.visible = false;
-        if (mepRef.current) mepRef.current.visible = false;
-
-        // We use a context to ensure cleaner cleanup
         const ctx = gsap.context(() => {
             const tl = gsap.timeline({
                 scrollTrigger: {
@@ -34,190 +70,142 @@ export default function MasterModel() {
                 }
             });
 
-            // Scene 1: Arrival
+            // Initial Camera Position set in Experience.tsx -> Moving to first scene immediately
 
-            // Scene 2: Infrastructure
-            tl.to(camera.position, { x: 25, y: 15, z: 25, duration: 1 }, 0);
+            // Scene 1: Wide Reveal from Water (Further back)
+            tl.to(camera.position, { x: 80, y: 10, z: 80, duration: 2 }, 0);
 
-            // Scene 3: Design Intelligence
-            tl.to(camera.position, { x: -25, y: 30, z: 25, duration: 1 }, 1);
+            // Scene 2: Full Profile View (Side)
+            tl.to(camera.position, { x: 80, y: 30, z: -10, duration: 2 }, 2);
 
-            // Scene 4: Architectural Detail
-            tl.to(camera.position, { x: -8, y: 15, z: 12, duration: 1 }, 2);
+            // Scene 3: Top Spine View
+            tl.to(camera.position, { x: -20, y: 70, z: 0, duration: 2 }, 4);
 
-            // Scene 5: Structural Core
-            tl.call(() => {
-                if (structureRef.current) structureRef.current.visible = true;
-                if (buildingRef.current) buildingRef.current.visible = false;
-            }, [], 3);
-            tl.to(camera.position, { x: 0, y: 10, z: 20, duration: 1 }, 3);
+            // Scene 4: Front Face View (High)
+            tl.to(camera.position, { x: 50, y: 40, z: 50, duration: 3 }, 6);
 
-            // Scene 6-8: MEP
-            tl.call(() => {
-                if (mepRef.current) mepRef.current.visible = true;
-                if (structureRef.current) structureRef.current.visible = true;
-            }, [], 4);
-            tl.to(camera.position, { x: 12, y: 20, z: 12, duration: 3 }, 4);
-
-            // Scene 9: Coordination
-            tl.call(() => {
-                if (buildingRef.current) buildingRef.current.visible = true;
-                // Transparency Effect
-                if (buildingRef.current) {
-                    buildingRef.current.children.forEach((floorGroup: any) => {
-                        floorGroup.children.forEach((mesh: any) => {
-                            if (mesh.material) {
-                                mesh.material.transparent = true;
-                                mesh.material.opacity = 0.2;
-                                mesh.material.needsUpdate = true;
-                            }
-                        })
-                    });
-                }
-            }, [], 7);
-
-            // Scene 10: Night/Living
-            tl.to(camera.position, { x: 40, y: 30, z: 40, duration: 1 }, 8);
-
-            // Scene 11: VR
-            tl.to(camera.position, { x: 0, y: 10, z: 10, duration: 1 }, 9);
+            // Scene 5: Distant Hero Shot
+            tl.to(camera.position, { x: 100, y: 30, z: 60, duration: 2 }, 9);
 
         }, scene);
-
         return () => ctx.revert();
     }, [camera, scene]);
 
-    // Procedural Building Parameters
-    const numFloors = 12;
-    const floorHeight = 3.5;
-    const baseSize = 12;
-
     return (
         <group ref={group}>
-            {/* Atmosphere / Particles */}
-            <Sparkles count={200} scale={[50, 50, 50]} size={6} speed={0.4} opacity={0.5} color="#44aaff" />
 
-            {/* Scene 1: City Context */}
-            <group ref={cityRef}>
-                <gridHelper args={[100, 50, 0x444444, 0x111111]} position={[0, -0.1, 0]} />
-                <Box args={[15, 30, 15]} position={[-30, 15, -30]}>
-                    <meshStandardMaterial color="#111" transparent opacity={0.6} />
-                    <edgesGeometry />
-                    <lineBasicMaterial color="#222" />
-                </Box>
-                <Box args={[20, 20, 15]} position={[35, 10, -20]}>
-                    <meshStandardMaterial color="#111" transparent opacity={0.6} />
-                    <edgesGeometry />
-                    <lineBasicMaterial color="#222" />
-                </Box>
-            </group>
+            {/* Atmosphere */}
+            <Sparkles count={300} scale={[60, 60, 60]} size={4} speed={0.4} opacity={0.5} color="#44aaff" />
 
-            {/* Scene 2: Site/Infrastructure */}
-            <group ref={siteRef}>
-                <Box args={[120, 1, 120]} position={[0, -1, 0]}>
-                    <meshStandardMaterial color="#020202" roughness={0.1} metalness={0.5} />
-                </Box>
-                {/* Neon Roads (Emissive for Bloom) */}
-                <Box args={[120, 0.2, 6]} position={[0, -0.4, 40]}>
-                    <meshStandardMaterial color="#050505" />
-                </Box>
-                <Box args={[120, 0.25, 0.5]} position={[0, -0.4, 40]}>
-                    <meshStandardMaterial emissive="#ff0044" emissiveIntensity={4} color="#ff0044" toneMapped={false} />
-                </Box>
-                <Box args={[120, 0.25, 0.5]} position={[0, -0.4, 38]}>
-                    <meshStandardMaterial emissive="#00ccff" emissiveIntensity={4} color="#00ccff" toneMapped={false} />
-                </Box>
-            </group>
+            {/* --- The Island Base --- */}
+            <mesh ref={islandRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+                <cylinderGeometry args={[25, 30, 4, 64]} />
+                <meshStandardMaterial color="#333" roughness={0.8} />
+            </mesh>
 
-            {/* Main Building: Twist Tower Design */}
-            <group ref={buildingRef}>
-                {Array.from({ length: numFloors }).map((_, i) => {
-                    const rotation = i * 0.15;
-                    const scale = 1 - (i * 0.02);
-                    // Oscillating color gradient
-                    const floorColor = i % 2 === 0 ? "#0066ff" : "#00ffcc";
+            {/* --- Ocean Water --- */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2, 0]}>
+                <planeGeometry args={[1000, 1000, 32, 32]} />
+                <MeshDistortMaterial
+                    color="#006699"
+                    speed={2}
+                    distort={0.4}
+                    roughness={0}
+                    metalness={0.8}
+                />
+            </mesh>
 
-                    return (
-                        <group key={i} position={[0, i * floorHeight, 0]} rotation={[0, rotation, 0]} scale={[scale, 1, scale]}>
+            {/* Main Building Assembly Centered */}
+            <group position={[0, 0, 0]}>
 
-                            {/* Glass Core with Transmission-like look */}
-                            <Box args={[baseSize, floorHeight - 0.2, baseSize]}>
-                                <meshPhysicalMaterial
-                                    roughness={0}
-                                    transmission={0.4}
-                                    thickness={1.5}
-                                    color="#88ccff"
-                                    envMapIntensity={3}
-                                    metalness={0.9}
-                                />
-                            </Box>
+                {/* --- The Sail (Glass Body) --- */}
+                {/* Center the extrusion depth by offsetting z */}
+                <mesh ref={sailRef} geometry={sailGeo} position={[0, 0, -4]}>
+                    <meshPhysicalMaterial
+                        color="#ffffff"
+                        transmission={0.2}  // Glassy but visible white
+                        opacity={1}
+                        metalness={0.6}
+                        roughness={0.1}
+                        ior={1.5}
+                        thickness={2}
+                        clearcoat={1}
+                        emissive="#0044aa"
+                        emissiveIntensity={0.1}
+                    />
+                </mesh>
 
-                            {/* Colorful Fins / Facade */}
-                            <Box args={[baseSize + 1, floorHeight, 1]} position={[0, 0, baseSize / 2]}>
-                                <meshStandardMaterial color={floorColor} metalness={0.9} roughness={0.1} />
-                            </Box>
-                            <Box args={[baseSize + 1, floorHeight, 1]} position={[0, 0, -baseSize / 2]}>
-                                <meshStandardMaterial color={floorColor} metalness={0.9} roughness={0.1} />
-                            </Box>
-                            <Box args={[1, floorHeight, baseSize + 1]} position={[baseSize / 2, 0, 0]}>
-                                <meshStandardMaterial color={floorColor} metalness={0.9} roughness={0.1} />
-                            </Box>
-                            <Box args={[1, floorHeight, baseSize + 1]} position={[-baseSize / 2, 0, 0]}>
-                                <meshStandardMaterial color={floorColor} metalness={0.9} roughness={0.1} />
-                            </Box>
+                {/* --- The Mast (Spine) --- */}
+                <mesh position={[-2, 25, 0]}>
+                    <boxGeometry args={[4, 55, 4]} />
+                    <meshStandardMaterial color="#eee" roughness={0.2} metalness={0.5} />
+                </mesh>
+                <mesh position={[-2, 54, 0]}>
+                    <cylinderGeometry args={[0.5, 1, 10]} />
+                    <meshStandardMaterial color="#eee" />
+                </mesh>
 
-                            {/* Edge Lights (Emissive Strip) */}
-                            <Box args={[baseSize + 1.1, 0.1, baseSize + 1.1]} position={[0, floorHeight / 2, 0]}>
-                                <meshStandardMaterial emissive={floorColor} emissiveIntensity={2} color={floorColor} toneMapped={false} />
-                            </Box>
-                        </group>
-                    )
-                })}
-            </group>
+                {/* --- The Exoskeleton (White Truss) --- */}
+                <group ref={exoskeletonRef} position={[9, 0, 0]}>
+                    {/* Curved Truss Legs - simplified as angled beams */}
+                    <mesh position={[2, 20, 5]} rotation={[0, 0, -0.3]}>
+                        <capsuleGeometry args={[1, 45, 4]} />
+                        <meshStandardMaterial color="white" />
+                    </mesh>
+                    <mesh position={[2, 20, -5]} rotation={[0, 0, -0.3]}>
+                        <capsuleGeometry args={[1, 45, 4]} />
+                        <meshStandardMaterial color="white" />
+                    </mesh>
 
-            {/* Structure */}
-            <group ref={structureRef} visible={false}>
-                {Array.from({ length: numFloors }).map((_, i) => {
-                    const rotation = i * 0.15;
-                    const scale = 1 - (i * 0.02);
-                    return (
-                        <group key={i} position={[0, i * floorHeight, 0]} rotation={[0, rotation, 0]} scale={[scale, 1, scale]}>
-                            <Cylinder args={[2, 2, floorHeight]}>
-                                <meshStandardMaterial color="#888" roughness={0.5} metalness={0.8} />
-                            </Cylinder>
-                            {[
-                                [baseSize / 2 - 1, baseSize / 2 - 1],
-                                [-baseSize / 2 + 1, baseSize / 2 - 1],
-                                [baseSize / 2 - 1, -baseSize / 2 + 1],
-                                [-baseSize / 2 + 1, -baseSize / 2 + 1]
-                            ].map((pos, k) => (
-                                <Cylinder key={k} args={[0.4, 0.4, floorHeight]} position={[pos[0], 0, pos[1]]}>
-                                    <meshStandardMaterial color="#ff3300" emissive="#ff3300" emissiveIntensity={0.5} />
-                                </Cylinder>
-                            ))}
-                        </group>
-                    )
-                })}
-            </group>
-
-            {/* MEP Systems */}
-            <group ref={mepRef} visible={false}>
-                {Array.from({ length: numFloors }).map((_, i) => {
-                    const rotation = i * 0.15;
-                    return (
-                        <group key={i} position={[0, i * floorHeight + 1, 0]} rotation={[0, rotation, 0]}>
-                            <mesh rotation={[Math.PI / 2, 0, 0]}>
-                                <torusGeometry args={[3, 0.2, 8, 20]} />
-                                <meshStandardMaterial color="cyan" emissive="cyan" emissiveIntensity={2} toneMapped={false} />
+                    {/* Cross Bracing */}
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <group key={i} position={[3, 10 + (i * 6), 0]}>
+                            <mesh rotation={[Math.PI / 4, 0, 0]} position={[0, 0, 0]}>
+                                <boxGeometry args={[1, 1, 12]} />
+                                <meshStandardMaterial color="white" />
                             </mesh>
-                            <Box args={[baseSize - 2, 0.3, 0.3]} position={[0, 0.5, 0]}>
-                                <meshStandardMaterial color="orange" emissive="orange" emissiveIntensity={1} />
-                            </Box>
+                            <mesh rotation={[-Math.PI / 4, 0, 0]} position={[0, 0, 0]}>
+                                <boxGeometry args={[1, 1, 12]} />
+                                <meshStandardMaterial color="white" />
+                            </mesh>
                         </group>
-                    )
-                })}
+                    ))}
+                </group>
+
+                {/* --- The Helipad --- */}
+                <group ref={helipadRef} position={[6, 38, 5.5]}>
+                    <mesh rotation={[0, 0, 0.2]}>
+                        {/* Support Arm */}
+                        <boxGeometry args={[8, 1, 2]} />
+                        <meshStandardMaterial color="white" />
+                    </mesh>
+                    <mesh position={[4, 1, 0]}>
+                        <cylinderGeometry args={[3.5, 2, 0.5, 32]} />
+                        <meshStandardMaterial color="#eee" />
+                    </mesh>
+                    {/* Landing Pad Surface */}
+                    <mesh position={[4, 1.3, 0]}>
+                        <cylinderGeometry args={[3.2, 3.2, 0.1, 32]} />
+                        <meshStandardMaterial color="#222" />
+                    </mesh>
+                    {/* Ring Light */}
+                    <mesh position={[4, 1.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                        <torusGeometry args={[3, 0.1, 16, 32]} />
+                        <meshStandardMaterial color="#00ff00" emissive="#00ff00" emissiveIntensity={5} toneMapped={false} />
+                    </mesh>
+                </group>
+
+                {/* --- Horizontal Fins / Blue Glass Lines --- */}
+                {Array.from({ length: 15 }).map((_, i) => (
+                    <mesh key={i} position={[5, 5 + (i * 2.5), -4.1]}>
+                        <boxGeometry args={[12 - (i * 0.4), 0.5, 8.2]} />
+                        <meshStandardMaterial color="#001133" metalness={0.9} roughness={0.1} />
+                    </mesh>
+                ))}
+
             </group>
 
+            <ContactShadows position={[0, -0.4, 0]} opacity={0.6} scale={100} blur={2.5} far={20} />
         </group>
     );
 }

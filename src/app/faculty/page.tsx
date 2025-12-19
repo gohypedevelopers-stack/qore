@@ -1,46 +1,135 @@
-import { Users } from 'lucide-react';
+'use client';
 
-export const metadata = {
-    title: "Faculty | QORE Learning",
-    description: "Learn from BIM practitioners with global AECO project experience.",
-};
+import { Linkedin, ArrowUpRight, Grid, Disc } from 'lucide-react';
+import Link from 'next/link';
+
+const faculty = [
+    {
+        id: "01",
+        name: "SARAH JENKINS",
+        role: "BIM MANAGER",
+        company: "ZAHA HADID ARCHITECTS",
+        bio: "Specialist in parametric workflows and complex geometry rationalization.",
+        tags: ["GRASSHOPPER", "PYTHON", "RHINO"]
+    },
+    {
+        id: "02",
+        name: "DAVID CHEN",
+        role: "VDC DIRECTOR",
+        company: "ESCHER LABS",
+        bio: "Leading digital twin integration for mega-scale infrastructure projects.",
+        tags: ["DIGITAL TWINS", "IOT", "AZURE"]
+    },
+    {
+        id: "03",
+        name: "ELENA RODRIGUEZ",
+        role: "STRUCTURAL LEAD",
+        company: "ARUP",
+        bio: "Bridging the gap between FEM analysis and BIM documentation.",
+        tags: ["REVIT API", "DYNAMO", "C#"]
+    },
+    {
+        id: "04",
+        name: "MICHAEL ROSS",
+        role: "LEAD DEVELOPER",
+        company: "ESCHER LABS",
+        bio: "Full-stack developer focused on AECO process automation.",
+        tags: ["REACT", "THREE.JS", "FORGE"]
+    },
+];
 
 export default function FacultyPage() {
     return (
-        <div className="min-h-screen bg-black text-white pt-20">
-            <section className="py-20 px-6 max-w-7xl mx-auto">
-                <div className="text-center mb-16">
-                    <h1 className="text-5xl font-bold mb-6">Meet Our Faculty</h1>
-                    <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-                        QORE Learning trainers bring real-world Revit, VDC, and digital construction expertise from industry-leading projects.
+        <div className="min-h-screen bg-[#050505] text-white pt-24 pb-20 font-sans selection:bg-blue-500/30">
+
+            {/* --- TECHNICAL GRID BACKGROUND --- */}
+            <div className="fixed inset-0 z-0 pointer-events-none opacity-20"
+                style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
+            </div>
+
+            <div className="relative z-10 max-w-[1400px] mx-auto px-6 border-x border-[#333] min-h-screen">
+
+                {/* --- HEADER --- */}
+                <div className="border-b border-[#333] pb-12 mb-12">
+                    <div className="flex items-center gap-2 mb-4 text-blue-500 font-mono text-sm tracking-widest">
+                        <Disc className="animate-spin-slow w-4 h-4" />
+                        <span>// FACULTY_DIRECTORY_V2.0</span>
+                    </div>
+                    <h1 className="text-6xl md:text-9xl font-bold tracking-tighter uppercase mb-4">
+                        The <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-white">Architects</span><br />
+                        of Intelligence.
+                    </h1>
+                    <p className="max-w-xl text-gray-500 font-mono text-sm md:text-base border-l border-blue-500 pl-4 mt-8">
+                        &gt; WE DO NOT HIRE ACADEMICS.<br />
+                        &gt; WE PARTNER WITH PRACTITIONERS.<br />
+                        &gt; LEARNING DIRECTLY FROM THE SOURCE.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    {/* Placeholder Faculty Cards - In real app, map from data */}
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-zinc-900 rounded-xl overflow-hidden border border-white/10 hover:border-white/20 transition-all">
-                            <div className="h-48 bg-zinc-800 flex items-center justify-center">
-                                <Users className="w-16 h-16 text-gray-600" />
-                            </div>
-                            <div className="p-6">
-                                <h3 className="text-xl font-bold">Expert Trainer {i}</h3>
-                                <p className="text-blue-400 text-sm mb-4">Senior BIM Manager</p>
-                                <p className="text-gray-400 text-sm">
-                                    10+ years of experience in large-scale infrastructure projects. Specialist in Revit API and Dynamo automation.
-                                </p>
+                {/* --- FACULTY LIST (ARCHITECTURAL STYLE) --- */}
+                <div className="flex flex-col">
+                    {faculty.map((member) => (
+                        <div key={member.id} className="group relative border-b border-[#333] py-12 hover:bg-white/5 transition-colors duration-300">
+
+                            <div className="flex flex-col md:flex-row md:items-start gap-8 md:gap-20">
+                                {/* ID */}
+                                <div className="font-mono text-gray-600 text-xl md:text-2xl group-hover:text-blue-500 transition-colors">
+                                    {member.id}
+                                </div>
+
+                                {/* INFO */}
+                                <div className="flex-grow">
+                                    <div className="flex flex-col md:flex-row md:items-baseline justify-between gap-4 mb-4">
+                                        <h2 className="text-4xl md:text-6xl font-bold tracking-tight group-hover:translate-x-4 transition-transform duration-300">
+                                            {member.name}
+                                        </h2>
+                                        <span className="font-mono text-sm text-gray-400 border border-[#333] px-3 py-1 rounded-full uppercase">
+                                            {member.role} @ {member.company}
+                                        </span>
+                                    </div>
+
+                                    <p className="text-gray-400 text-lg max-w-2xl mb-6 font-light">
+                                        {member.bio}
+                                    </p>
+
+                                    {/* TAGS */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {member.tags.map(tag => (
+                                            <span key={tag} className="text-xs font-mono text-blue-400 bg-blue-900/10 px-2 py-1 border border-blue-900/30">
+                                                {tag}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* LINK ICON */}
+                                <div className="md:self-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <a href="#" className="w-16 h-16 rounded-full border border-white/20 flex items-center justify-center hover:bg-white hover:text-black transition-all">
+                                        <ArrowUpRight size={32} />
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <div className="mt-20 p-8 bg-blue-900/20 rounded-2xl border border-blue-500/30 text-center">
-                    <h3 className="text-2xl font-bold mb-4">Backed by Escher Labs</h3>
-                    <p className="text-gray-300">
-                        Our curriculum is designed in collaboration with <span className="font-semibold text-white">Escher Labs</span>, ensuring you learn not just software, but applied technology used in real-world consulting.
-                    </p>
+                {/* --- FOOTER CTA --- */}
+                <div className="py-24 border-t border-[#333] mt-12 grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div>
+                        <h3 className="text-3xl font-bold uppercase mb-4">Join the Network</h3>
+                        <p className="text-gray-500 max-w-sm">
+                            Are you building the future? We are always looking for exceptional talent to join our roster.
+                        </p>
+                    </div>
+                    <div className="flex items-center justify-end">
+                        <Link href="/contact" className="group flex items-center gap-4 text-xl font-bold uppercase hover:text-blue-500 transition-colors">
+                            Apply as Instructor
+                            <span className="w-12 h-1 bg-white group-hover:bg-blue-500 transition-colors" />
+                        </Link>
+                    </div>
                 </div>
-            </section>
+
+            </div>
         </div>
     );
 }
